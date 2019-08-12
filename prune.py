@@ -67,7 +67,7 @@ def accuracy(output, target, topk=(1,)):
         batch_size = target.size(0)
 
         _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t().cuda()
+        pred = pred.t()
         correct = pred.eq(target.view(1, -1).expand_as(pred))
 
         res = []
@@ -112,7 +112,7 @@ def test(model):
         loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1, 1))
+        prec1, prec5 = accuracy(output.data, target_var, topk=(1, 1))
         losses.update(loss.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
 
