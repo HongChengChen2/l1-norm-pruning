@@ -40,6 +40,77 @@ prune_prob = {
     'A': [0.3, 0.3, 0.3, 0.0],
     'B': [0.5, 0.6, 0.4, 0.0],
 }
+def accuracy(output, target, topk=(1,)):
+    """Computes the precision@k for the specified values of k"""
+    with torch.no_grad():
+
+        maxk = max(topk)
+        batch_size = target.size(0)
+
+        _, pred = output.topk(maxk, 1, True, True)
+        pred = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+        res = []
+        for k in topk:
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            res.append(correct_k.mul_(100.0 / batch_size))
+        return res
+
+# simple test model after Pre-processing prune (simple set BN scales to zeros)
+def test(model):
+    kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+    val_loader = torch.utils.data.DataLoader(
+        datasets.ImageFolder(os.path.join(args.data,'val'), transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            normalize,
+        ])),
+        batch_size=args.test_batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True)
+
+    model.eval()
+
+
+    batch_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    criterion = nn.CrossEntropyLoss().cuda()
+
+
+    end = time.time()
+    for i, (input, target) in enumerate(val_loader):
+        if args.gpu is not None:
+            input_var = input.cuda(args.gpu, non_blocking=True)
+        target_var = target.cuda(args.gpu, non_blocking=True)
+
+        # compute output
+        output = model(input_var)
+        loss = criterion(output, target_var)
+
+        # measure accuracy and record loss
+        prec1, prec5 = accuracy(output.data, target, topk=(1, 1))
+        losses.update(loss.item(), input.size(0))
+        top1.update(prec1[0], input.size(0))
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        if i % args.print_freq == 0:
+            print('Test: [{0}/{1}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
+                   i, len(val_loader), batch_time=batch_time, loss=losses,
+                   top1=top1))
+
+    print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1, top5=top5))
+    return top1.avg, top5.avg
+
 
 if not os.path.exists(args.save):
     os.makedirs(args.save)
@@ -160,76 +231,6 @@ with open(os.path.join(args.save, "prune.txt"), "w") as fp:
     fp.write("acc@1: "+str(new_acc_top1)+"\n"+"\n")
     fp.write("Number of parameters: \n"+str(num_parameters2)+"\n")
 
-def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
-    with torch.no_grad():
-
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
-
-# simple test model after Pre-processing prune (simple set BN scales to zeros)
-def test(model):
-    kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(os.path.join(args.data,'val'), transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=args.test_batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
-
-    model.eval()
-
-
-    batch_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    criterion = nn.CrossEntropyLoss().cuda()
-
-
-    end = time.time()
-    for i, (input, target) in enumerate(val_loader):
-        if args.gpu is not None:
-            input_var = input.cuda(args.gpu, non_blocking=True)
-        target_var = target.cuda(args.gpu, non_blocking=True)
-
-        # compute output
-        output = model(input_var)
-        loss = criterion(output, target_var)
-
-        # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1, 1))
-        losses.update(loss.item(), input.size(0))
-        top1.update(prec1[0], input.size(0))
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        if i % args.print_freq == 0:
-            print('Test: [{0}/{1}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                   i, len(val_loader), batch_time=batch_time, loss=losses,
-                   top1=top1))
-
-    print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1, top5=top5))
-    return top1.avg, top5.avg
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
