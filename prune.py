@@ -101,7 +101,8 @@ def test(model):
 
 
     end = time.time()
-    for i, (input, target) in enumerate(val_loader):
+    for i, (input_var, target) in enumerate(val_loader):
+        input_var=Variable(input_var,requires_grad=True)
         if args.gpu is not None:
             input_var = input.cuda(args.gpu, non_blocking=True)
         target_var = target.cuda(args.gpu, non_blocking=True)
