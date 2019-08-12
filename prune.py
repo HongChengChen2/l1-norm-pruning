@@ -28,6 +28,8 @@ parser.add_argument('-j', '--workers', default=20, type=int, metavar='N',
                     help='number of data loading workers (default: 20)')
 parser.add_argument('-v', default='A', type=str, 
                     help='version of the pruned model')
+parser.add_argument('--gpu', default=None, type=int,
+                    help='GPU id to use.')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -100,7 +102,8 @@ def test(model):
 
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        input_var = input.cuda(args.gpu, non_blocking=True)
+        if args.gpu is not None:
+            input_var = input.cuda(args.gpu, non_blocking=True)
         target_var = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
