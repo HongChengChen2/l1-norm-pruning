@@ -113,8 +113,8 @@ def test(model):
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target_var, topk=(1, 1))
-        losses.update(loss.item(), input.size(0))
-        top1.update(prec1[0], input.size(0))
+        losses.update(loss.item(), input_var.size(0))
+        top1.update(prec1[0], input_var.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
