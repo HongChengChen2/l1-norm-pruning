@@ -81,8 +81,9 @@ def test(model):
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
         target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
+        with torch.no_grad():
+            input_var = Variable(input, volatile=True)
+            target_var = Variable(target, volatile=True)
 
         # compute output
         output = model(input_var)
