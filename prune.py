@@ -136,7 +136,8 @@ if not os.path.exists(args.save):
     os.makedirs(args.save)
 
 model = resnet34(pretrained=True)
-model = torch.nn.DataParallel(model).cuda()
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, 2) #only train the last layermodel = torch.nn.DataParallel(model).cuda()
 cudnn.benchmark = True
 
 print('Pre-processing Successful!')
