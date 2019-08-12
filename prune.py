@@ -56,7 +56,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-        
+
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     with torch.no_grad():
@@ -100,8 +100,7 @@ def test(model):
 
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        if args.gpu is not None:
-            input_var = input.cuda(args.gpu, non_blocking=True)
+        input_var = input.cuda(args.gpu, non_blocking=True)
         target_var = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
