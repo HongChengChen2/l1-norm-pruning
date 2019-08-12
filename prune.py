@@ -128,8 +128,8 @@ def test(model):
                    i, len(val_loader), batch_time=batch_time, loss=losses,
                    top1=top1))
 
-    print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1, top5=top5))
-    return top1.avg, top5.avg
+    print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
+    return top1.avg
 
 
 if not os.path.exists(args.save):
